@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CivicConnect — Enhanced Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+
+<style>
+:root{
+  --bg:#0f172a; --card:#071428; --accent:#1e88e5; --accent2:#00bfa5; --muted:#9aa4b2; --surface:#071428;
+}
+:root.light{
+  --bg:#f7f9fc; --card:#fff; --accent:#1565c0; --accent2:#00bfa5; --muted:#57636a; --surface:#fff; color-scheme:light;
+}
+*{box-sizing:border-box;}
+body,html{margin:0;padding:0;height:100%;font-family:Inter,sans-serif;background:var(--bg);color:var(--muted);display:flex;flex-direction:column;}
+
+header.appbar{
+  display:flex;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(90deg,var(--card),#06202a);backdrop-filter:blur(6px);
+}
+header .title{font-weight:700;font-size:16px;color:white;}
+.right-actions{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.chip{
+  background:transparent;border:1px solid rgba(255,255,255,0.2);padding:6px 10px;border-radius:999px;color:var(--muted);cursor:pointer;transition:0.2s;
+}
+.chip:hover{background:var(--accent);color:white;}
+
+main{flex:1;padding:12px;display:flex;flex-direction:column;gap:10px;}
+.card{
+  background:var(--card);border-radius:14px;padding:10px;border:1px solid rgba(255,255,255,0.1);transition:0.3s;
+}
+.card:hover{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;transform:translateY(-2px);}
+
+#map{height:45vh;border-radius:12px;overflow:hidden;}
+nav.bottom{
+  position:fixed;left:12px;right:12px;bottom:12px;background:var(--card);padding:8px;border-radius:14px;display:flex;justify-content:space-around;align-items:center;gap:8px;border:1px solid rgba(255,255,255,0.2);
+}
+nav button{
+  background:transparent;border:none;color:var(--muted);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 8px;border-radius:10px;cursor:pointer;transition:0.2s;
+}
+nav button:hover{background:var(--accent);color:white;}
+nav button.active{color:var(--accent);font-weight:600;}
+
+.fab{
+  position:fixed;right:24px;bottom:86px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;border:none;padding:16px;border-radius:999px;box-shadow:0 8px 30px rgba(30,136,229,0.25);font-size:22px;cursor:pointer;transition:0.2s;
+}
+.fab:hover{transform:scale(1.08);opacity:0.95;}
+
+.panel{display:none;}
+.panel.active{display:block;}
+
+input,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:inherit;margin-top:6px;}
+textarea{min-height:100px;}
+
+.splash{
+  position:fixed;inset:0;background:linear-gradient(180deg,var(--card),#06202a);display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;
+}
+.splash .biglogo{
+  width:140px;height:140px;border-radius:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:900;color:white;font-size:40px;
+}
+.splash small{color:var(--muted);margin-top:12px;}
+.splash button{margin-top:18px;padding:8px 14px;border-radius:10px;border:none;background:var(--accent);color:white;cursor:pointer;}
+
+.report-img{width:100%;border-radius:12px;margin-top:6px;max-height:180px;object-fit:cover;}
+.badge{background:var(--accent2);color:white;padding:2px 6px;border-radius:6px;font-size:11px;margin-left:6px;}
+</style>
+</head>
+<body>
+
+<!-- Splash / Launch page -->
+<div class="splash" id="splash">
+  <div class="biglogo" id="bigLogo">CC</div>
+  <small>Welcome to CivicConnect — loading…</small>
+  <button id="skipSplash">Skip</button>
+</div>
+
+<header class="appbar">
+  <div class="title">CivicConnect</div>
+  <div class="right-actions">
+    <button id="themeToggle" class="chip">Dark</button>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-weight:700">Nearby Reports</div>
+      <div>
+        <select id="filterCategory" class="chip">
+          <option value="">All</option>
+          <option value="pothole">Pothole</option>
+          <option value="streetlight">Streetlight</option>
+          <option value="garbage">Garbage</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <div class="panel active" id="homePanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-weight:700">Recent Reports</div>
+      <div class="small" id="countLabel">0 reports</div>
+    </div>
+    <div class="list" id="reportList"></div>
+  </div>
+
+  <div class="panel" id="reportPanel">
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:6px">New Report</div>
+      <input id="rTitle" placeholder="Title" />
+      <select id="rCategory">
+        <option value="pothole">Pothole</option>
+        <option value="streetlight">Streetlight</option>
+        <option value="garbage">Garbage</option>
+        <option value="other">Other</option>
+      </select>
+      <textarea id="rDesc" placeholder="Describe the issue"></textarea>
+      <input type="file" id="rPhoto" accept="image/*" />
+      <button class="fab" id="submitReportBtn"><span class="material-icons">send</span></button>
+    </div>
+  </div>
+
+  <div class="panel" id="profilePanel">
+    <div class="card">
+      <div style="font-weight:700">Profile <span class="badge" id="profileBadge">0</span></div>
+      <div class="small" id="userInfo">Guest | 0 reports</div>
+    </div>
+  </div>
+</main>
+
+<nav class="bottom">
+  <button id="navHome" class="active"><span class="material-icons">map</span><span>Home</span></button>
+  <button id="navReport"><span class="material-icons">add_circle</span><span>Report</span></button>
+  <button id="navProfile"><span class="material-icons">person</span><span>Profile</span></button>
+</nav>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Theme toggle
+const root=document.documentElement;
+const themeToggle=document.getElementById('themeToggle');
+function setTheme(dark){ if(dark) root.classList.remove('light'); else root.classList.add('light'); themeToggle.textContent = dark? 'Dark':'Light'; }
+const savedTheme=localStorage.getItem('civic_theme'); setTheme(savedTheme!=='light');
+themeToggle.addEventListener('click', ()=>{ const cur=localStorage.getItem('civic_theme')==='light'; localStorage.setItem('civic_theme', cur?'dark':'light'); setTheme(!cur); });
+
+// Splash
+const splash=document.getElementById('splash');
+document.getElementById('skipSplash').addEventListener('click', ()=>{ splash.style.display='none'; });
+setTimeout(()=>{ splash.style.display='none'; },1500);
+
+// Bottom nav
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  if(id==='home') document.getElementById('homePanel').classList.add('active');
+  else if(id==='report') document.getElementById('reportPanel').classList.add('active');
+  else if(id==='profile') document.getElementById('profilePanel').classList.add('active');
+  document.querySelectorAll('nav.bottom button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('nav'+id.charAt(0).toUpperCase()+id.slice(1)).classList.add('active');
+}
+document.getElementById('navHome').addEventListener('click', ()=>showPanel('home'));
+document.getElementById('navReport').addEventListener('click', ()=>showPanel('report'));
+document.getElementById('navProfile').addEventListener('click', ()=>showPanel('profile'));
+
+// Map
+const MAP_CENTER=[28.7041,77.1025];
+const map=L.map('map',{zoomControl:false}).setView(MAP_CENTER,13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+L.control.zoom({position:'topright'}).addTo(map);
+let markerLayer=L.layerGroup().addTo(map);
+
+// Reports localStorage
+const storageKey='civic_simple_reports';
+if(!localStorage.getItem(storageKey)){
+  const sample=[{id:'r1',title:'Pothole near Market',desc:'Large pothole',category:'pothole',lat:28.705,lng:77.103,img:'',votes:3,comments:[],created:Date.now()}];
+  localStorage.setItem(storageKey, JSON.stringify(sample));
+}
+
+function loadReports(){ return JSON.parse(localStorage.getItem(storageKey)||'[]'); }
+function saveReports(arr){ localStorage.setItem(storageKey, JSON.stringify(arr)); }
+
+function renderReports(){
+  const reports=loadReports();
+  markerLayer.clearLayers();
+  const list=document.getElementById('reportList');
+  list.innerHTML='';
+  const filter=document.getElementById('filterCategory').value;
+  const filtered=reports.filter(r=>!filter||r.category===filter);
+  document.getElementById('countLabel').textContent=filtered.length+' reports';
+  document.getElementById('profileBadge').textContent=reports.length;
+  document.getElementById('userInfo').textContent=`Guest | ${reports.length} reports`;
+
+  filtered.forEach(r=>{
+    const m=L.marker([r.lat,r.lng]).addTo(markerLayer);
+    m.bindPopup(`<b>${r.title}</b><br>${r.category}`);
+    const card=document.createElement('div'); card.className='card';
+    let imgHTML=r.img?`<img src="${r.img}" class="report-img"/>`:'';
+    card.innerHTML=`<b>${r.title}</b><div class="small">${r.desc} • ${r.category} • ${r.votes} votes</div>${imgHTML}`;
+    list.appendChild(card);
+  });
+}
+renderReports();
+document.getElementById('filterCategory').addEventListener('change', renderReports);
+
+// Submit report
+document.getElementById('submitReportBtn').addEventListener('click', ()=>{
+  const title=document.getElementById('rTitle').value.trim();
+  const desc=document.getElementById('rDesc').value.trim();
+  const category=document.getElementById('rCategory').value;
+  const photo=document.getElementById('rPhoto').files[0];
+  if(!title){alert('Add a title'); return;}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const reports=loadReports();
+    reports.push({id:'r_'+Date.now(),title,desc,category,lat:MAP_CENTER[0]+Math.random()*0.01,lng:MAP_CENTER[1]+Math.random()*0.01,img:e.target.result,votes:0,comments:[],created:Date.now()});
+    saveReports(reports); renderReports(); alert('Report submitted!');
+    document.getElementById('rTitle').value=''; document.getElementById('rDesc').value=''; document.getElementById('rPhoto').value='';
+  }
+  if(photo) reader.readAsDataURL(photo);
+  else reader.onload({target:{result:''}});
+});
+</script>
+</body>
+</html>
