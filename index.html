@@ -2,243 +2,176 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover">
-<title>CivicConnect HD</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Map Prototype</title>
+<!-- Google Maps JS API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
 <style>
-:root{--bg:#0f172a;--card:#071428;--accent:#1e88e5;--muted:#9aa4b2;--surface:#071428;--text:#e6eef8}
-:root.light{--bg:#f7f9fc;--card:#fff;--accent:#1565c0;--muted:#57636a;--surface:#fff;--text:#111;color-scheme:light}
-*{box-sizing:border-box;transition:0.2s}
-html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;background:var(--bg);color:var(--text)}
-body{display:flex;flex-direction:column}
-
-/* Splash */
-.splash{position:fixed;inset:0;background:linear-gradient(180deg,var(--card),#06202a);display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;opacity:1;transition:opacity 0.5s}
-.splash.hide{opacity:0;pointer-events:none}
-.splash .biglogo{width:140px;height:140px;border-radius:20px;background:linear-gradient(135deg,var(--accent),#00bfa5);display:flex;align-items:center;justify-content:center;font-weight:900;color:white;font-size:40px;box-shadow:0 12px 40px rgba(2,6,23,0.6)}
-.splash small{color:var(--muted);margin-top:12px}
-
-/* Appbar */
-header.appbar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(90deg,var(--card),#06202a);backdrop-filter:blur(6px);position:relative;z-index:10}
-.brand{display:flex;align-items:center;gap:12px}
-.logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#00bfa5);display:flex;align-items:center;justify-content:center;font-weight:700;color:white}
-header .title{font-weight:700;font-size:16px;color:var(--text)}
-header .subtitle{font-size:12px;color:var(--muted)}
-.right-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
-.chip{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:13px;cursor:pointer}
-.chip:hover{background:rgba(255,255,255,0.06)}
-
-/* Main panels */
-main{flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden;position:relative;padding:8px}
-.panel{position:absolute;top:0;left:0;right:0;bottom:0;opacity:0;pointer-events:none;transition:opacity 0.4s ease,transform 0.4s ease;transform:translateX(20px);overflow-y:auto;padding-bottom:80px}
-.panel.active{opacity:1;pointer-events:auto;transform:translateX(0)}
-.card{background:var(--card);border-radius:14px;padding:10px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.03)}
-.card:hover{background:rgba(30,136,229,0.08)}
-#map{height:46vh;border-radius:12px;overflow:hidden;position:relative}
-
-/* Floating layer toggle */
-#layerToggle{position:absolute;top:80px;right:16px;z-index:1000;background:var(--accent);color:white;border:none;padding:10px 14px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,0.25);cursor:pointer;font-weight:700;transition:transform 0.3s}
-#layerToggle:hover{opacity:0.9}
-
-/* Bottom nav */
-nav.bottom{position:fixed;left:12px;right:12px;bottom:12px;background:var(--card);padding:8px;border-radius:14px;display:flex;justify-content:space-around;align-items:center;gap:8px;border:1px solid rgba(255,255,255,0.04)}
-nav button{background:transparent;border:none;color:var(--muted);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 8px;border-radius:10px;cursor:pointer;transition:0.2s}
-nav button.active{color:var(--accent);font-weight:600}
-nav button:hover{background:rgba(255,255,255,0.06)}
-
-/* Input fields */
-input,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
-textarea{min-height:120px}
-
-/* Lists */
-.list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
-.issue{display:flex;gap:10px;background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);transition:transform 0.3s}
-.issue:hover{transform:scale(1.02)}
-.issue .left{width:84px}
-.issue img{width:84px;height:84px;object-fit:cover;border-radius:8px}
-.issue .right{flex:1}
-.issue h4{margin:0 0 6px 0;font-size:15px;color:inherit}
-.meta{font-size:12px;color:var(--muted)}
-
-/* FAB */
-.fab{position:fixed;right:24px;bottom:86px;background:linear-gradient(135deg,var(--accent),#00bfa5);color:white;border:none;padding:14px;border-radius:999px;box-shadow:0 8px 30px rgba(30,136,229,0.18);font-size:18px;cursor:pointer;transition:transform 0.3s}
-.fab:hover{transform:scale(1.1)}
-
-/* Search bar */
-#searchBar{position:absolute;top:12px;left:12px;right:12px;z-index:1000;display:flex;gap:6px}
-#searchInput{flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.2);color:white}
-#searchBtn{padding:8px 12px;border-radius:10px;background:var(--accent);color:white;border:none;cursor:pointer}
-#searchBtn:hover{opacity:0.9}
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+  body { height: 100vh; display: flex; flex-direction: column; }
+  /* Tabs */
+  .tabs { display: flex; background: #007BFF; color: white; }
+  .tab { flex: 1; text-align: center; padding: 12px 0; cursor: pointer; transition: 0.3s; }
+  .tab:hover { background: #0056b3; }
+  .tab.active { background: #0056b3; }
+  /* Sections */
+  .section { flex: 1; display: none; overflow: auto; }
+  .section.active { display: block; }
+  #map { width: 100%; height: 100%; }
+  /* Theme Toggle */
+  #themeToggle {
+    position: absolute; top: 10px; right: 10px; z-index: 5;
+    background: #fff; border: none; padding: 10px; cursor: pointer;
+    border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.3);
+  }
+  /* Report tab */
+  #reportUpload { padding: 10px; }
+  #imageList { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; }
+  #imageList img { width: 100px; height: 100px; object-fit: cover; border: 1px solid #ccc; border-radius: 5px; }
+  /* Floating satellite toggle */
+  #mapToggle {
+    position: absolute; bottom: 20px; right: 20px; z-index: 5;
+    background: #007BFF; color: white; border: none; padding: 12px; border-radius: 50px;
+    cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  }
 </style>
 </head>
 <body>
 
-<!-- Splash -->
-<div class="splash" id="splash">
-  <div class="biglogo" id="bigLogo">CC</div>
-  <small>Welcome to CivicConnect — loading…</small>
-  <div style="margin-top:18px"><button id="skipSplash" class="chip">Skip</button></div>
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" data-target="home">Home</div>
+  <div class="tab" data-target="mapSection">Map</div>
+  <div class="tab" data-target="report">Report</div>
 </div>
 
-<header class="appbar">
-  <div class="brand"><div class="logo">CC</div>
-    <div>
-      <div class="title">CivicConnect</div>
-      <div class="subtitle small">Report & track civic issues</div>
-    </div>
-  </div>
-  <div class="right-actions">
-    <button id="themeToggle" class="chip">Dark</button>
-  </div>
-</header>
+<!-- Sections -->
+<div id="home" class="section active">
+  <h2 style="padding:10px;">Welcome to Advanced Map Prototype</h2>
+  <p style="padding:10px;">Use the Map tab to see your location, switch satellite view, and search locations.</p>
+</div>
 
-<main>
-  <!-- Home Panel -->
-  <div class="panel active" id="homePanel">
-    <div class="card" style="position:relative;">
-      <div id="searchBar">
-        <input type="text" id="searchInput" placeholder="Search location..."/>
-        <button id="searchBtn">Search</button>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;margin-top:44px">
-        <div style="font-weight:700;color:inherit">Nearby Reports</div>
-        <div><button id="centerBtn" class="chip">My location</button></div>
-      </div>
-      <div id="map"></div>
-      <button id="layerToggle">Satellite</button>
-    </div>
+<div id="mapSection" class="section">
+  <button id="themeToggle">Toggle Dark Mode</button>
+  <div id="map"></div>
+  <button id="mapToggle">Satellite/Map</button>
+</div>
+
+<div id="report" class="section">
+  <div id="reportUpload">
+    <input type="file" id="imageInput" multiple>
   </div>
+  <div id="imageList"></div>
+</div>
 
-  <!-- Report Panel -->
-  <div class="panel" id="reportPanel">
-    <div class="card">
-      <h4>New Report</h4>
-      <input id="rTitle" placeholder="Title" required/>
-      <select id="rCategory">
-        <option value="pothole">Pothole</option>
-        <option value="streetlight">Streetlight</option>
-        <option value="garbage">Garbage</option>
-        <option value="other">Other</option>
-      </select>
-      <textarea id="rDesc" placeholder="Describe the issue"></textarea>
-      <input type="file" id="rPhoto" accept="image/*"/>
-      <div style="margin-top:8px">Location: <span id="locText">Detecting…</span></div>
-      <button id="submitReportBtn" class="fab">Submit</button>
-    </div>
-  </div>
-
-  <!-- List Panel -->
-  <div class="panel" id="listPanel">
-    <div style="font-weight:700">All Reports</div>
-    <div class="list" id="reportList"></div>
-  </div>
-
-  <!-- Profile Panel -->
-  <div class="panel" id="profilePanel">
-    <div class="card">
-      <div style="font-weight:700">Profile</div>
-      <div>Reports: <span id="reportCount">0</span></div>
-      <div>Upvotes: <span id="upvoteCount">0</span></div>
-    </div>
-  </div>
-</main>
-
-<nav class="bottom">
-  <button id="navHome" class="active"><span class="material-icons">map</span><span>Home</span></button>
-  <button id="navReport"><span class="material-icons">add_circle</span><span>Report</span></button>
-  <button id="navList"><span class="material-icons">format_list_bulleted</span><span>List</span></button>
-  <button id="navProfile"><span class="material-icons">person</span><span>Profile</span></button>
-</nav>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const $=id=>document.getElementById(id);
-const storageKey='civic_v2_reports';
-let reports=JSON.parse(localStorage.getItem(storageKey)||'[]');
-
-// Splash
-const splash=$('splash'); $('skipSplash').addEventListener('click',()=>splash.classList.add('hide'));
-setTimeout(()=>splash.classList.add('hide'),1500);
-
-// Theme toggle
-const bodyEl=document.body;
-$('themeToggle').addEventListener('click',()=>{
-  if(bodyEl.classList.contains('light')){bodyEl.classList.remove('light');$('themeToggle').textContent='Dark'}
-  else{bodyEl.classList.add('light');$('themeToggle').textContent='Light'}
-});
-
-// Bottom nav
-function showPanel(panelId){
-  ['homePanel','reportPanel','listPanel','profilePanel'].forEach(id=>$(id).classList.remove('active'));
-  $(panelId).classList.add('active');
-  ['navHome','navReport','navList','navProfile'].forEach(id=>$(id).classList.remove('active'));
-  if(panelId==='homePanel')$('navHome').classList.add('active');
-  if(panelId==='reportPanel')$('navReport').classList.add('active');
-  if(panelId==='listPanel')$('navList').classList.add('active');
-  if(panelId==='profilePanel')$('navProfile').classList.add('active');
-}
-['navHome','navReport','navList','navProfile'].forEach(id=>$(id).addEventListener('click',()=>showPanel(id.replace('nav','').toLowerCase()+'Panel')));
-
-// Map
-let userLat=28.7041, userLng=77.1025;
-const map=L.map('map',{zoomControl:false});
-const baseMap=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20}).addTo(map);
-const satelliteMap=L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{maxZoom:20,subdomains:['mt0','mt1','mt2','mt3']});
-let markerLayer=L.layerGroup().addTo(map);
-let currentLayer='map';
-
-// Detect location on load
-if(navigator.geolocation){
-  navigator.geolocation.getCurrentPosition(p=>{
-    userLat=p.coords.latitude; userLng=p.coords.longitude;
-    map.setView([userLat,userLng],15);
-    setLocation(userLat,userLng);
-  },()=>{map.setView([userLat,userLng],13);setLocation(userLat,userLng);});
-}else{map.setView([userLat,userLng],13);setLocation(userLat,userLng);}
-function setLocation(lat,lng){$('locText').textContent=`${lat.toFixed(5)},${lng.toFixed(5)}`;$('locText').dataset.lat=lat;$('locText').dataset.lng=lng}
-$('centerBtn').addEventListener('click',()=>{if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],15))})
-
-// Layer toggle
-$('layerToggle').addEventListener('click',()=>{
-  const btn=$('layerToggle');
-  btn.style.transform='scale(1.2)'; setTimeout(()=>btn.style.transform='scale(1)',200);
-  if(currentLayer==='map'){map.removeLayer(baseMap); map.addLayer(satelliteMap); btn.textContent='Map'; currentLayer='sat'}
-  else{map.removeLayer(satelliteMap); map.addLayer(baseMap); btn.textContent='Satellite'; currentLayer='map'}
-});
-
-// Search
-$('searchBtn').addEventListener('click',async()=>{
-  const q=$('searchInput').value.trim(); if(!q)return;
-  const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
-  const data=await res.json();
-  if(data && data[0]){map.setView([parseFloat(data[0].lat),parseFloat(data[0].lon)],15);L.marker([parseFloat(data[0].lat),parseFloat(data[0].lon)]).addTo(map).bindPopup(q).openPopup()}
-  else alert('Location not found');
-});
-
-// Reports
-function renderReports(){
-  const list=$('reportList'); list.innerHTML=''; markerLayer.clearLayers();
-  reports.forEach(r=>{
-    const div=document.createElement('div'); div.className='issue';
-    div.innerHTML=`<div class="left"><img src="${r.photo}"></div><div class="right"><h4>${r.title}</h4><div class="meta">${r.category} • ${r.desc}<br>${r.lat.toFixed(5)},${r.lng.toFixed(5)}</div></div>`;
-    list.appendChild(div);
-    L.marker([r.lat,r.lng]).addTo(markerLayer).bindPopup(`<b>${r.title}</b><br>${r.category}`);
+/* ====== Tabs ====== */
+const tabs = document.querySelectorAll('.tab');
+const sections = document.querySelectorAll('.section');
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.getAttribute('data-target');
+    sections.forEach(s => s.classList.remove('active'));
+    document.getElementById(target).classList.add('active');
   });
-  $('reportCount').textContent=reports.length;
-}
-$('submitReportBtn').addEventListener('click',()=>{
-  const title=$('rTitle').value.trim(), desc=$('rDesc').value.trim(), category=$('rCategory').value;
-  const lat=parseFloat($('locText').dataset.lat||0), lng=parseFloat($('locText').dataset.lng||0);
-  const file=$('rPhoto').files[0]; if(!title||!desc||!file){alert('Fill all fields');return;}
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const photo=e.target.result; reports.push({title,desc,category,lat,lng,photo});
-    localStorage.setItem(storageKey,JSON.stringify(reports)); renderReports(); showPanel('listPanel');
-  }; reader.readAsDataURL(file);
 });
-renderReports();
+
+/* ====== Image Upload in Report ====== */
+const imageInput = document.getElementById('imageInput');
+const imageList = document.getElementById('imageList');
+imageInput.addEventListener('change', (e) => {
+  imageList.innerHTML = '';
+  const files = e.target.files;
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const img = document.createElement('img');
+      img.src = ev.target.result;
+      imageList.appendChild(img);
+    }
+    reader.readAsDataURL(file);
+  });
+});
+
+/* ====== Google Maps 3D + Satellite Toggle + Search + User Location ====== */
+let map, mapType = 'satellite', marker, searchBox;
+const themeToggle = document.getElementById('themeToggle');
+const savedTheme = localStorage.getItem('theme') || 'light';
+document.body.classList.add(savedTheme);
+
+function initMap() {
+  // Default location (fallback)
+  const defaultLoc = { lat: 28.7041, lng: 77.1025 }; // Delhi
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: defaultLoc,
+    zoom: 17,
+    mapTypeId: mapType,
+    tilt: 45,
+    heading: 90,
+    disableDefaultUI: true,
+    styles: getMapStyles(),
+  });
+
+  // Detect user location
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      map.setCenter(userLoc);
+      marker = new google.maps.Marker({ position: userLoc, map: map, title: 'Your Location' });
+    });
+  } else {
+    marker = new google.maps.Marker({ position: defaultLoc, map: map, title: 'Default Location' });
+  }
+
+  // Add Search Box
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Search location';
+  input.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);padding:8px;width:60%;z-index:5;border-radius:5px;border:1px solid #ccc;';
+  document.getElementById('mapSection').appendChild(input);
+  searchBox = new google.maps.places.SearchBox(input);
+  map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
+  searchBox.addListener('places_changed', () => {
+    const places = searchBox.getPlaces();
+    if (!places || places.length == 0) return;
+    const place = places[0];
+    map.setCenter(place.geometry.location);
+    map.setZoom(18);
+    if (marker) marker.setMap(null);
+    marker = new google.maps.Marker({ position: place.geometry.location, map: map });
+  });
+}
+
+/* ====== Dark/Light Mode ====== */
+function getMapStyles() {
+  return document.body.classList.contains('dark') ? [
+    { elementType: 'geometry', stylers: [{ color: '#212121' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#ffffff' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#000000' }] },
+    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#000000' }] }
+  ] : [];
+}
+
+themeToggle.addEventListener('click', () => {
+  const currentTheme = document.body.classList.contains('dark') ? 'dark' : 'light';
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.body.classList.remove(currentTheme);
+  document.body.classList.add(newTheme);
+  localStorage.setItem('theme', newTheme);
+  map.setOptions({ styles: getMapStyles() });
+});
+
+/* ====== Satellite Toggle ====== */
+const mapToggleBtn = document.getElementById('mapToggle');
+mapToggleBtn.addEventListener('click', () => {
+  mapType = mapType === 'satellite' ? 'roadmap' : 'satellite';
+  map.setMapTypeId(mapType);
+});
+
+window.onload = initMap;
 </script>
+
 </body>
 </html>
